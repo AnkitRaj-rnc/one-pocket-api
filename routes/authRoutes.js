@@ -9,10 +9,10 @@ router.post('/register', register);
 // POST /api/auth/login - Login user
 router.post('/login', login);
 
-// GET /api/auth/me - Get current user (protected route)
+// GET /api/auth/me - Get current user
 router.get('/me', protect, getMe);
 
-// POST /api/auth/logout - Logout user (protected route)
+// POST /api/auth/logout - Logout user
 router.post('/logout', protect, logout);
 
 module.exports = router;

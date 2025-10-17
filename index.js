@@ -5,7 +5,7 @@ const connectDB = require('./config/db');
 const { logger } = require('./middleware/logger');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // Connect to MongoDB
 connectDB();
@@ -51,11 +51,13 @@ const authRoutes = require('./routes/authRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const historyRoutes = require('./routes/historyRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -69,13 +71,13 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   const timestamp = new Date().toISOString();
 
-  console.log('\n========================================');
-  console.log(`[${timestamp}] ❌ ERROR OCCURRED`);
-  console.log(`Method: ${req.method}`);
-  console.log(`URL: ${req.originalUrl}`);
-  console.log(`Error Message: ${err.message}`);
-  console.log(`Stack Trace:`, err.stack);
-  console.log('========================================\n');
+  // console.log('\n========================================');
+  // console.log(`[${timestamp}] ❌ ERROR OCCURRED`);
+  // console.log(`Method: ${req.method}`);
+  // console.log(`URL: ${req.originalUrl}`);
+  // console.log(`Error Message: ${err.message}`);
+  // console.log(`Stack Trace:`, err.stack);
+  // console.log('========================================\n');
 
   res.status(500).json({
     error: 'Something went wrong!',

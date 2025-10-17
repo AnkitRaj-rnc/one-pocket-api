@@ -5,8 +5,14 @@ const getAllExpenses = async (req, res) => {
   try {
     const { month } = req.query;
 
-    // Build query
-    const query = { userId: req.user.id };
+    // Build query - exclude reimbursed expenses
+    const query = {
+      userId: req.user.id,
+      $or: [
+        { reimbursed: false },
+        { reimbursed: { $exists: false } }
+      ]
+    };
 
     // If month parameter is provided, filter by month
     if (month) {
@@ -112,8 +118,96 @@ const searchExpensesByNote = async (req, res) => {
   }
 };
 
+// Mark expense as reimbursed
+const reimburseExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find expense
+    const expense = await Expense.findById(id);
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: 'Expense not found'
+      });
+    }
+
+    // Check if expense belongs to logged in user
+    if (expense.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to reimburse this expense'
+      });
+    }
+
+    // Check if already reimbursed
+    if (expense.reimbursed) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expense already marked as reimbursed'
+      });
+    }
+
+    // Mark as reimbursed
+    expense.reimbursed = true;
+    await expense.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Expense marked as reimbursed',
+      data: expense
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Delete expense
+const deleteExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find expense
+    const expense = await Expense.findById(id);
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: 'Expense not found'
+      });
+    }
+
+    // Check if expense belongs to logged in user
+    if (expense.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this expense'
+      });
+    }
+
+    // Delete expense
+    await Expense.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Expense deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllExpenses,
   createExpense,
-  searchExpensesByNote
+  searchExpensesByNote,
+  reimburseExpense,
+  deleteExpense
 };

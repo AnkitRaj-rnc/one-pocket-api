@@ -56,17 +56,42 @@ const getMonthlySummary = async (req, res) => {
     const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
     const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 23, 59, 59, 999);
 
-    // Get expenses for the month
+    // Get expenses for the month (exclude reimbursable and reimbursed expenses)
     const expenses = await Expense.find({
       userId: req.user.id,
       date: {
         $gte: startDate,
         $lte: endDate
-      }
+      },
+      $or: [
+        { reimbursable: false },
+        { reimbursable: { $exists: false } }
+      ],
+      $and: [
+        {
+          $or: [
+            { reimbursed: false },
+            { reimbursed: { $exists: false } }
+          ]
+        }
+      ]
+    });
+
+    // Get reimbursable expenses for the month
+    const reimbursableExpenses = await Expense.find({
+      userId: req.user.id,
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      },
+      reimbursable: true
     });
 
     // Calculate total spent
     const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Calculate total reimbursable amount
+    const totalReimbursable = reimbursableExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
     // Calculate category breakdown
     const categoryMap = {};
@@ -107,6 +132,7 @@ const getMonthlySummary = async (req, res) => {
     res.status(200).json({
       month,
       totalSpent: parseFloat(totalSpent.toFixed(2)),
+      totalReimbursable: parseFloat(totalReimbursable.toFixed(2)),
       categoryBreakdown,
       budgetComparisons
     });
@@ -118,7 +144,102 @@ const getMonthlySummary = async (req, res) => {
   }
 };
 
+// Get monthly comparison for last N months
+const getMonthlyComparison = async (req, res) => {
+  try {
+    const { months = 6 } = req.query;
+    const monthsCount = parseInt(months);
+
+    if (isNaN(monthsCount) || monthsCount < 1 || monthsCount > 24) {
+      return res.status(400).json({
+        success: false,
+        message: 'Months parameter must be between 1 and 24'
+      });
+    }
+
+    // Generate array of last N months in YYYY-MM format
+    const monthsList = [];
+    const today = new Date();
+
+    for (let i = monthsCount - 1; i >= 0; i--) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthsList.push(yearMonth);
+    }
+
+    // Get all expenses for the user (exclude reimbursable and reimbursed expenses)
+    const expenses = await Expense.find({
+      userId: req.user.id,
+      $or: [
+        { reimbursable: false },
+        { reimbursable: { $exists: false } }
+      ],
+      $and: [
+        {
+          $or: [
+            { reimbursed: false },
+            { reimbursed: { $exists: false } }
+          ]
+        }
+      ]
+    });
+
+    // Get all reimbursable expenses for the user
+    const reimbursableExpenses = await Expense.find({
+      userId: req.user.id,
+      reimbursable: true
+    });
+
+    // Calculate total spent for each month
+    const comparisonData = monthsList.map(month => {
+      const [year, monthNum] = month.split('-');
+      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 23, 59, 59, 999);
+
+      // Filter expenses for this month
+      const monthExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate >= startDate && expenseDate <= endDate;
+      });
+
+      // Filter reimbursable expenses for this month
+      const monthReimbursableExpenses = reimbursableExpenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate >= startDate && expenseDate <= endDate;
+      });
+
+      // Calculate total
+      const totalSpent = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+      // Calculate total reimbursable
+      const totalReimbursable = monthReimbursableExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+      // Format month name (e.g., "Jan 2025")
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+      return {
+        month,
+        monthName,
+        totalSpent: parseFloat(totalSpent.toFixed(2)),
+        totalReimbursable: parseFloat(totalReimbursable.toFixed(2))
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: comparisonData
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   getMonths,
-  getMonthlySummary
+  getMonthlySummary,
+  getMonthlyComparison
 };

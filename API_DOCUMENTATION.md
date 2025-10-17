@@ -160,6 +160,7 @@ GET /api/expenses?month=2025-01      # Get only January 2025 expenses
     "paymentMethod": "cash",
     "note": "Lunch meeting",
     "reimbursable": false,
+    "reimbursed": false,
     "createdAt": "2025-01-03T10:30:45.123Z",
     "updatedAt": "2025-01-03T10:30:45.123Z"
   },
@@ -172,11 +173,14 @@ GET /api/expenses?month=2025-01      # Get only January 2025 expenses
     "paymentMethod": "credit_card",
     "note": "",
     "reimbursable": false,
+    "reimbursed": false,
     "createdAt": "2025-01-01T08:00:00.000Z",
     "updatedAt": "2025-01-01T08:00:00.000Z"
   }
 ]
 ```
+
+**Note:** This endpoint only returns expenses where `reimbursed: false`. Expenses marked as reimbursed will not appear in this list.
 
 **Error Response (400 Bad Request):**
 ```json
@@ -257,7 +261,79 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
-### 7. Search Expenses by Note
+### 7. Mark Expense as Reimbursed
+**Endpoint:** `PUT /api/expenses/:id/reimburse`
+
+**Description:** Mark an expense as reimbursed. Reimbursed expenses will no longer appear in the expense list.
+
+**Headers:**
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+**Example Request:**
+```
+PUT /api/expenses/507f1f77bcf86cd799439011/reimburse
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Expense marked as reimbursed",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "userId": "67774a1b2c5d8e3f4a1b2c3d",
+    "amount": 150.50,
+    "reason": "Food & Dining",
+    "date": "2025-01-03T00:00:00.000Z",
+    "paymentMethod": "credit_card",
+    "note": "Lunch with team",
+    "reimbursable": true,
+    "reimbursed": true,
+    "createdAt": "2025-01-03T10:30:45.123Z",
+    "updatedAt": "2025-01-03T12:00:00.000Z"
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Expense not found"
+}
+```
+
+**Error Response (403 Forbidden):**
+```json
+{
+  "success": false,
+  "message": "Not authorized to reimburse this expense"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Expense already marked as reimbursed"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "message": "Not authorized, no token"
+}
+```
+
+**Note:** Once an expense is marked as reimbursed, it will no longer appear in the GET /api/expenses endpoint.
+
+---
+
+### 8. Search Expenses by Note
 **Endpoint:** `GET /api/expenses/search?query={searchText}`
 
 **Description:** Search expenses by note content (case-insensitive partial match)
@@ -325,7 +401,7 @@ GET /api/expenses/search?query=uber
 
 ## Budget Endpoints (Protected - Requires JWT Token)
 
-### 8. Get All Budgets
+### 9. Get All Budgets
 **Endpoint:** `GET /api/budgets` or `GET /api/budgets?month={YYYY-MM}`
 
 **Description:** Get all budgets for the logged-in user, optionally filtered by month
@@ -370,7 +446,7 @@ GET /api/budgets?month=2025-01      # Get only January 2025 budgets
 
 ---
 
-### 9. Create Budget
+### 10. Create Budget
 **Endpoint:** `POST /api/budgets`
 
 **Description:** Create a new budget for logged-in user (userId added automatically from JWT)
@@ -423,7 +499,7 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
-### 10. Update Budget
+### 11. Update Budget
 **Endpoint:** `PUT /api/budgets/:id`
 
 **Description:** Update an existing budget
@@ -478,7 +554,7 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
-### 11. Delete Budget
+### 12. Delete Budget
 **Endpoint:** `DELETE /api/budgets/:id`
 
 **Description:** Delete a budget
@@ -516,7 +592,7 @@ Authorization: Bearer <your_jwt_token>
 
 ## History Endpoints (Protected - Requires JWT Token)
 
-### 12. Get Months with Expense Data
+### 13. Get Months with Expense Data
 **Endpoint:** `GET /api/history/months`
 
 **Description:** Get list of months that have expense data for the logged-in user
@@ -543,7 +619,7 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
-### 13. Get Monthly Summary
+### 14. Get Monthly Summary
 **Endpoint:** `GET /api/history/summary?month={YYYY-MM}`
 
 **Description:** Get summary data for a specific month including category breakdown and budget comparisons
@@ -609,7 +685,7 @@ GET /api/history/summary?month=2024-12
 
 ## Utility Endpoints
 
-### 14. Welcome/Home
+### 15. Welcome/Home
 **Endpoint:** `GET /`
 
 **Description:** Welcome message
@@ -625,7 +701,7 @@ GET /api/history/summary?month=2024-12
 
 ---
 
-### 15. Health Check
+### 16. Health Check
 **Endpoint:** `GET /api/health`
 
 **Description:** Check server health and uptime
@@ -641,7 +717,7 @@ GET /api/history/summary?month=2024-12
 
 ---
 
-### 16. Greet
+### 17. Greet
 **Endpoint:** `GET /api/greet?name=John`
 
 **Description:** Sample greeting endpoint

@@ -31,6 +31,10 @@ const expenseSchema = new mongoose.Schema({
   reimbursable: {
     type: Boolean,
     default: false
+  },
+  reimbursed: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
